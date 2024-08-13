@@ -79,6 +79,8 @@ char *poland(char *equation, size_t l)
     stack p_stack;
     init_stack(&p_stack);
 
+    if(equation[0] != '-') p_equation[p_size++] = '+';
+
     for(int i=0; i<l; i++)
     {
         if(isdigit(equation[i]) || equation[i] == 'x')
@@ -117,6 +119,7 @@ void main()
 {
     char c, equation[100], *p_equation;
     size_t size=0;
+    int k, power;
 
     while ((c=getchar())!='\n')
     {
@@ -130,4 +133,8 @@ void main()
         printf("%c", p_equation[i]);
     }
     printf("\n");
+
+    sscanf(p_equation, "%dx%d^*", &k, &power);
+    printf("%d and %d\n", k, power);
+
 }
