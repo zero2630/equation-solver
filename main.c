@@ -39,6 +39,31 @@ double solve_equation(double *elements, double val)
     return answer;
 }
 
+size_t solve_quadratic(double *roots, double a, double b, double c)
+{
+    double discriminant = (b*b)-(4*a*c);
+
+    if(discriminant < -1e-15) return 0;
+
+    else if(is_zero(&discriminant))
+    {
+        roots[0] = (-1*b)/(2*a);
+        return 1;
+    }
+    else
+    {
+        roots[0] = (-b+sqrt(discriminant))/(2*a);
+        roots[1] = (-b-sqrt(discriminant))/(2*a);
+        if(roots[0] > roots[1])
+        {
+            double buffer = roots[0];
+            roots[0] = roots[1];
+            roots[1] = buffer;
+        }
+        return 2;
+    }
+}
+
 double half_division(double *elements, double x_left, double x_right)
 {
     double x_middle, length = fabs(x_right-x_left);
@@ -53,7 +78,7 @@ double half_division(double *elements, double x_left, double x_right)
     return x_middle;
 }
 
-void find_roots(double *elements, double find_from, double find_to)
+void find_root(double *elements, double find_from, double find_to)
 {
     double segments[20];
     size_t segments_size = 0;
@@ -80,6 +105,70 @@ void find_roots(double *elements, double find_from, double find_to)
     {
         printf("root: %lf\n", half_division(elements, segments[i], segments[i+1]));
     }
+}
+
+
+int max_power(double *elements)
+{
+    int m_pow = 0;
+
+    for(int i=0; i<10; i++) {
+        if(!is_zero(&elements[i])) m_pow = i;
+    }
+    return m_pow;
+}
+
+double *differentiation(double *elements, size_t level)
+{
+    if(max_power(elements) == level) return elements;
+
+    double *new_elements = calloc(10, sizeof(double));
+    for(int i=0; i<10; i++) new_elements[i] = elements[i];
+
+    while (max_power(new_elements) > level) {
+        for(int i=0; i<9; i++) {
+            if(!is_zero(&new_elements[i+1])) new_elements[i] = new_elements[i+1]*(i+1);
+            new_elements[i+1] = 0;
+        }
+    }
+    return new_elements;
+}
+
+size_t get_roots(double *elements, double *roots, size_t l, size_t level)
+{
+    double *new_elements = differentiation(elements, level+1);
+    double *new_roots = calloc(10, sizeof(double));
+    size_t roots_l = 0;
+    double left_check, right_check;
+    left_check = solve_equation(new_elements, roots[0]-10);
+    right_check = solve_equation(new_elements, roots[0]);
+    
+    if(left_check*right_check < 1e-15) {
+        new_roots[roots_l] = half_division(new_elements, roots[0]-10, roots[0]);
+        roots_l++;
+    }
+    for(int i=1; i<l; i++)
+    {
+        left_check = right_check;
+        right_check = solve_equation(new_elements, roots[i]);
+
+        if(left_check*right_check < 1e-15)
+        {
+            new_roots[roots_l] = half_division(new_elements, roots[i-1], roots[i]);
+            roots_l++;
+        }
+    }
+
+    left_check = right_check;
+    right_check = solve_equation(new_elements, roots[l-1]+10);
+    if(left_check*right_check < 1e-15)
+    {
+        new_roots[roots_l] = half_division(new_elements, roots[l-1], roots[l-1]+10);
+        roots_l++;
+    }
+    
+    for(int i=0; i<10; i++) roots[i] = new_roots[i];
+    return roots_l;
 }
 
 void read_block(double *elements, char block[], char length)
@@ -120,6 +209,7 @@ void read_block(double *elements, char block[], char length)
             pos++;
             i++;
         }
+        str_num[i] = '\0';
         sscanf(str_num, "%d", &power);
     }
     elements[power] += k;
@@ -130,7 +220,9 @@ void main()
 {
     char c, block_counter=0, block[10];
     int a;
-    double *elements = calloc(10, sizeof(int)), *roots = calloc(10, sizeof(int));
+    double *elements = calloc(10, sizeof(double));
+    double *roots = calloc(10, sizeof(double));
+    size_t roots_l;
 
     for (int i=0; (c=getchar())!='\n'; i++)
     {
@@ -153,19 +245,20 @@ void main()
     read_block(elements, block, block_counter);
     block_counter = 0;
 
-    // printf("приведённый вид:\n");
-    // if(elements[0]>1e-15) printf("+%.2lf", elements[0]);
-    // else if(elements[0]<-1e-15) printf("%.2lf", elements[0]);
-    // if(elements[1]>1e-15) printf("+%.2lfx", elements[1]);
-    // else if(elements[1]<-1e-15) printf("%.2lfx", elements[1]);
+    double *q_elements = differentiation(elements, 2);
 
-    // for(int i=2; i<10; i++)
-    // {
-    //     if(elements[i]>1e-15) printf("+%.2lfx^%d", elements[i], i);
-    //     else if(elements[i]<-1e-15) printf("%.2lfx^%d", elements[i], i);
-    // }
-    // printf("\n");
+    roots_l = solve_quadratic(roots, q_elements[2], q_elements[1], q_elements[0]);
 
-    find_roots(elements, -10, 10);
+
+
+    for(int i=2; i<max_power(elements); i++) {
+        roots_l = get_roots(elements, roots, roots_l, i);
+    }
+
+    for(int i=0; i<roots_l; i++) {
+        printf("root %d: %lf\n", i+1, roots[i]);
+    }
+
+
         
 }
