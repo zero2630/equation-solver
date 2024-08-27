@@ -4,7 +4,7 @@
 
 char is_zero(double *val)
 {
-    if((*val > 0 && *val < 1e-15) || (*val < 0 && *val > -1e-15) || *val == 0)
+    if(fabs(*val) < 1e-15)
     {
         return 1;
     }
@@ -43,7 +43,7 @@ size_t solve_quadratic(double *roots, double a, double b, double c)
 {
     double discriminant = (b*b)-(4*a*c);
 
-    if(discriminant < -1e-15) return 0;
+    if(discriminant < 0) return 0;
 
     else if(is_zero(&discriminant))
     {
@@ -67,11 +67,18 @@ size_t solve_quadratic(double *roots, double a, double b, double c)
 double half_division(double *elements, double x_left, double x_right)
 {
     double x_middle, length = fabs(x_right-x_left);
+    double innacuracy = 1e-7;
+    double left_res, mid_res;
 
-    while(length > 1e-7)
+    while(length > innacuracy)
     {
         x_middle = (x_right+x_left)/2;
-        if(solve_equation(elements, x_middle) * solve_equation(elements, x_left) <= 0) x_right = x_middle;
+        left_res = solve_equation(elements, x_left);
+        mid_res = solve_equation(elements, x_middle);
+
+        if(mid_res * left_res < 0) x_right = x_middle;
+        else if(mid_res == 0) return x_middle;
+        else if(left_res == 0) return x_left;
         else x_left = x_middle;
         length = fabs(x_right-x_left);
     }
@@ -167,7 +174,10 @@ size_t get_roots(double *elements, double *roots, size_t l, size_t level)
         roots_l++;
     }
     
+    
     for(int i=0; i<10; i++) roots[i] = new_roots[i];
+    free(new_roots);
+    free(new_elements);
     return roots_l;
 }
 
@@ -259,6 +269,7 @@ void main()
         printf("root %d: %lf\n", i+1, roots[i]);
     }
 
-
-        
+    free(roots);
+    free(elements);
+    free(q_elements);
 }
