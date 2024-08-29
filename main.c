@@ -127,10 +127,11 @@ int max_power(double *elements)
 
 double *differentiation(double *elements, size_t level)
 {
-    if(max_power(elements) == level) return elements;
 
     double *new_elements = calloc(10, sizeof(double));
     for(int i=0; i<10; i++) new_elements[i] = elements[i];
+
+    if(max_power(elements) == level) return new_elements;
 
     while (max_power(new_elements) > level) {
         for(int i=0; i<9; i++) {
@@ -150,28 +151,45 @@ size_t get_roots(double *elements, double *roots, size_t l, size_t level)
     left_check = solve_equation(new_elements, roots[0]-10);
     right_check = solve_equation(new_elements, roots[0]);
     
-    if(left_check*right_check < 1e-15) {
+    {
+    int i=1;
+
+    if(is_zero(&right_check)) {
+        new_roots[roots_l++] = roots[0];
+        i++;
+    }
+    else if(left_check*right_check < 1e-15) {
         new_roots[roots_l] = half_division(new_elements, roots[0]-10, roots[0]);
         roots_l++;
     }
-    for(int i=1; i<l; i++)
+    for(; i<l; i++)
     {
-        left_check = right_check;
+        left_check = solve_equation(new_elements, roots[i-1]);
         right_check = solve_equation(new_elements, roots[i]);
 
-        if(left_check*right_check < 1e-15)
+        if(is_zero(&right_check)) {
+            new_roots[roots_l++] = roots[i];
+            i++;
+        }
+
+        else if(left_check*right_check < 1e-15)
         {
             new_roots[roots_l] = half_division(new_elements, roots[i-1], roots[i]);
             roots_l++;
         }
     }
 
-    left_check = right_check;
+    left_check = solve_equation(new_elements, roots[l-1]);
     right_check = solve_equation(new_elements, roots[l-1]+10);
-    if(left_check*right_check < 1e-15)
-    {
-        new_roots[roots_l] = half_division(new_elements, roots[l-1], roots[l-1]+10);
-        roots_l++;
+
+    if(!is_zero(&left_check)) { 
+        if(left_check*right_check < 1e-15)
+        {
+            new_roots[roots_l] = half_division(new_elements, roots[l-1], roots[l-1]+10);
+            roots_l++;
+        }
+    }
+
     }
     
     
@@ -186,6 +204,7 @@ void read_block(double *elements, char block[], char length)
     char is_positive=1, str_num[10], pos=0;
     int power;
     double k;
+    char is_error = 0;
 
     if(block[pos]=='-') is_positive=0;
     pos++;
@@ -199,6 +218,10 @@ void read_block(double *elements, char block[], char length)
         str_num[i++] = '\0';
         sscanf(str_num, "%lf", &k);
         if(!is_positive) k *= -1;
+        if(i > 6) {
+            printf("error: too high/low koefficient in equation\n");
+            is_error = 1;
+        }
     }
 
     else
@@ -221,17 +244,23 @@ void read_block(double *elements, char block[], char length)
         }
         str_num[i] = '\0';
         sscanf(str_num, "%d", &power);
+            if(power > 9 || i>2) {
+            printf("error: too high power in equation\n");
+            is_error = 1;
+        }
+
+    if(is_error) exit(1);
     }
     elements[power] += k;
 }
 
 
-void main()
+int main()
 {
     char c, block_counter=0, block[10];
     int a;
     double *elements = calloc(10, sizeof(double));
-    double *roots = calloc(10, sizeof(double));
+    double *roots = calloc(9, sizeof(double));
     size_t roots_l;
 
     for (int i=0; (c=getchar())!='\n'; i++)
@@ -255,10 +284,14 @@ void main()
     read_block(elements, block, block_counter);
     block_counter = 0;
 
+    if(max_power(elements) == 1) {
+        printf("root 1: %lf\n", -elements[0] / elements[1]);
+        return 0;
+    }
+
     double *q_elements = differentiation(elements, 2);
 
     roots_l = solve_quadratic(roots, q_elements[2], q_elements[1], q_elements[0]);
-
 
 
     for(int i=2; i<max_power(elements); i++) {
@@ -269,7 +302,10 @@ void main()
         printf("root %d: %lf\n", i+1, roots[i]);
     }
 
+    if(roots_l == 0) printf("no roots\n");
+
     free(roots);
     free(elements);
     free(q_elements);
+    return 0;
 }
