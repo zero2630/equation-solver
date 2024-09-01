@@ -255,34 +255,38 @@ void read_block(double *elements, char block[], char length)
 }
 
 
-int main()
-{
+int print_equation_roots(char *strline, size_t len) {
     char c, block_counter=0, block[10];
     int a;
     double *elements = calloc(10, sizeof(double));
-    double *roots = calloc(9, sizeof(double));
+    double *roots = calloc(10, sizeof(double));
     size_t roots_l;
 
-    for (int i=0; (c=getchar())!='\n'; i++)
     {
-        if((c=='+' || c=='-') && i!=0)
+    int i=0;
+    if(strline[0]!='-')
+    {
+        block[0] = '+';
+        block_counter++;
+    }
+    for (; i<len; i++)
+    {
+        if((strline[i]=='+' || strline[i]=='-') && i!=0)
         {
             read_block(elements, block, block_counter);
             block_counter = 0;
         }
-        if(i==0 && c!='-')
-        {
-            block[i] = '+';
-            block_counter++;
-            i++;
-        }
 
-        block[block_counter] = c;
+        block[block_counter] = strline[i];
         block_counter++;
 
     }
+    }
     read_block(elements, block, block_counter);
     block_counter = 0;
+
+    // for(int i=0; i<10; i++) printf("%lf\n", elements[i]);
+    // printf("\n");
 
     if(max_power(elements) == 1) {
         printf("root 1: %lf\n", -elements[0] / elements[1]);
@@ -306,6 +310,30 @@ int main()
 
     free(roots);
     free(elements);
-    free(q_elements);
+    // free(q_elements);
+    return 0;
+}
+
+
+int main()
+{
+    FILE *f = fopen("data.txt", "r");
+    char *strline = calloc(100, sizeof(char));
+    size_t strline_len = 0;
+    char c;
+
+    while ((c=getc(f)) != EOF)
+    {
+        strline[strline_len++] = c;
+        if(c == '\n')
+        {
+            // for(int i=0; i<strline_len; i++) printf("%c", strline[i]);
+            // printf("\n");
+            print_equation_roots(strline, strline_len-1);
+            printf("\n");
+            strline_len = 0;
+        }
+    }
+
     return 0;
 }
